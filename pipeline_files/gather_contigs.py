@@ -9,16 +9,17 @@ import glob
 import argparse
 import shutil
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Creates a Multifasta from the largest highest coverage SPAdes contigs')
+    parser = argparse.ArgumentParser(description='Creates a multifasta from the best SPAdes contigs')
     parser.add_argument('-s', type=str,
                         help='Folder containing SPAdes assemblies', required=True)
     args = parser.parse_args()
 
     combine_uces(args.s)
 
-def combine_uces(spades_directory):
 
+def combine_uces(spades_directory):
     """
     Takes the UCES from an rnaSPAdes and SPAdes run and creates a seperate file taking only the best sequence per UCE
     :return:
@@ -39,8 +40,7 @@ def combine_uces(spades_directory):
     problematic_fastas = []
     for fasta in spades_fastas:
         specimen = os.path.basename(fasta)
-        #specimen_name = specimen.replace(".fasta", "")
-        specimen_name = specimen.replace("_S.fasta", "")
+        specimen_name = specimen.replace(".fasta", "")
         contigs = []
         for seq in SeqIO.parse(fasta, 'fasta'):
             contigs.append(seq)
@@ -54,7 +54,7 @@ def combine_uces(spades_directory):
 
             if coverage > 50 and length > 600:
                 temp_final_good_contigs.append(seq)
-            elif coverage > 50 and length > 400 and length < 601:
+            elif coverage > 50 and 400 < length < 601:
                 temp_final_medium_contigs.append(seq)
 
         if len(temp_final_good_contigs) == 1:
@@ -70,7 +70,7 @@ def combine_uces(spades_directory):
     print("Medium Quality Contigs: ", len(final_medium_contigs))
     print("Problem Fastas: ", len(problematic_fastas))
 
-    problematic_path ="problem_fastas.txt"
+    problematic_path = "problem_fastas.txt"
     os.makedirs("problem_fastas")
     with open(problematic_path, "w") as e:
         for item in problematic_fastas:
@@ -88,6 +88,7 @@ def combine_uces(spades_directory):
     with open(final_medium_path, "w") as g:
         for seq in final_medium_contigs:
             SeqIO.write(seq, handle=g, format="fasta")
+
 
 if __name__ == "__main__":
     main()

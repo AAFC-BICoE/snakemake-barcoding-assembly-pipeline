@@ -1,4 +1,4 @@
-# Snakemake file to process CO1 Barcoding Genes Sequenced on a MiSeq
+ Snakemake file to process CO1 Barcoding Genes Sequenced on a MiSeq
 # Author: Jackson Eyres jackson.eyres@canada.ca
 # Copyright: Government of Canada
 # License: MIT
@@ -23,12 +23,10 @@ adaptors = "pipeline_files/adapters.fa"
 
 rule all:
     input:
-        fastqc_dir = directory("fastqc"),
-
         r1_trimmed = expand("trimmed/{sample}_trimmed_L001_R1_001.fastq.gz", sample=SAMPLES),
         r2_trimmed = expand("trimmed/{sample}_trimmed_L001_R2_001.fastq.gz", sample=SAMPLES),
 
-        fastqc_trimmed_dir = directory("fastqc_trimmed"),
+        # fastqc_trimmed_dir = directory("fastqc_trimmed"),
 
         spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
 
@@ -142,7 +140,7 @@ rule align_poor_to_reference:
     input: directory("problem_fastas")
     output: directory("problem_fastas")
     conda: "pipeline_files/barcoding.yml"
-    shell: "for f in problem_fastas/*; do cp pipeline_files/co1.fasta temp.fasta && cat $f >> temp.fasta && mafft --adjustdirection temp.fasta > problem_fastas_aligned/${f//+(*\/|.*)}_aligned.fasta && rm temp.fasta; done"
+    shell: "for f in problem_fastas/*; do cp pipeline_files/co1.fasta temp.fasta && cat $f >> temp.fasta && mafft --adjustdirection temp.fasta > problem_fastas_aligned/${f//+(*\/|.*)} && rm temp.fasta; done"
 
 
 rule bold_retriever:
