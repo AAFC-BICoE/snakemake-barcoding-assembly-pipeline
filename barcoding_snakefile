@@ -1,0 +1,69 @@
+# Snakemake file to process CO1 Barcoding Genes Sequenced on a MiSeq
+# Author: Jackson Eyres jackson.eyres@canada.ca
+# Copyright: Government of Canada
+# License: MIT
+# Version 0.1
+
+import glob
+import os
+from shutil import copyfile
+
+# Configuration Settings
+SAMPLES = set([os.path.basename(f).replace("_trimmed_L001_R1_001.fastq.gz","").replace("_trimmed_L001_R2_001.fastq.gz","") for f in glob.glob('trimmed/*.fastq.gz')])
+
+reference = "pipeline_files/co1.fasta"
+
+rule all:
+    input:
+        bbmaps = expand("bbmap/{sample}.sam", sample=SAMPLES),
+        sorted_bbmaps = expand("bbmap/{sample}_sorted.bam", sample=SAMPLES),
+        indexed_bbmaps = expand("bbmap/{sample}_sorted.bam.bai", sample=SAMPLES),
+        consensus_fastqs = expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
+
+        consensus_fasta = "BBMap_consensus.fasta"
+
+rule align_to_reference:
+    input:
+        r1 = 'trimmed/{sample}_trimmed_L001_R1_001.fastq.gz',
+        r2 = 'trimmed/{sample}_trimmed_L001_R2_001.fastq.gz'
+    output:
+        "bbmap/{sample}.sam"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "bbmap.sh in={input.r1} in2={input.r2} outm={output} ref={reference}"
+
+
+rule sort_alignments:
+    input:
+        "bbmap/{sample}.sam"
+    output:
+        "bbmap/{sample}_sorted.bam"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "samtools sort {input} > {output}"
+
+
+rule index_alignments:
+    input:
+        "bbmap/{sample}_sorted.bam"
+    output:
+        "bbmap/{sample}_sorted.bam.bai"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "cd bbmap & samtools index {input}"
+
+
+rule generate_consensus:
+    input:
+        bam = "bbmap/{sample}_sorted.bam",
+        bai = "bbmap/{sample}_sorted.bam.bai"
+    output:
+        "consensus_fastq/{sample}_consensus.fq"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "samtools mpileup -uf pipeline_files/co1.fasta {input.bam} | bcftools call -c | vcfutils.pl vcf2fq > {output}"
+
+
+rule generate_multifasta:
+    input:
+        "consensus_fastq"
+    output:
+        "BBMap_consensus.fasta"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "python pipeline_files/fastq_to_fasta.py -d {input.dir} - o {output}"

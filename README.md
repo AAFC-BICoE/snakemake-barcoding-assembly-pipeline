@@ -32,6 +32,10 @@ After initializing a conda enviroment containing snakemake, pipeline can be invo
 ```
 snakemake --use-conda -k
 ```
+A seperate pipeline was created to generate consensus sequences from reads mapped to a COI reference gene
+```
+snakemake -s barcoding_snakefile --use-conda -k
+```
 
 ## Built With
 

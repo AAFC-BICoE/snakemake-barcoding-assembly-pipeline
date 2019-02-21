@@ -1,4 +1,4 @@
- Snakemake file to process CO1 Barcoding Genes Sequenced on a MiSeq
+# Snakemake file to process CO1 Barcoding Genes Sequenced on a MiSeq
 # Author: Jackson Eyres jackson.eyres@canada.ca
 # Copyright: Government of Canada
 # License: MIT

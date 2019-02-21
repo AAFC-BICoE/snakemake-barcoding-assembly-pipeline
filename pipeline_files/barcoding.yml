@@ -8,6 +8,7 @@ dependencies:
   - alembic=1.0.6=py36_0
   - asn1crypto=0.24.0=py36_0
   - bbmap=38.22=h470a237_0
+  - bcftools=1.9=h4da6232_0
   - biopython=1.72=py36h04863e7_0
   - blas=1.0=mkl
   - bzip2=1.0.6=h470a237_2
@@ -17,16 +18,20 @@ dependencies:
   - chardet=3.0.4=py36_1
   - cryptography=2.2.2=py36h14c3975_0
   - cryptography-vectors=2.4.2=py36_0
+  - curl=7.61.0=h84994c4_0
   - dataset=0.8.0=py36_0
   - fastqc=0.11.8=0
   - freetype=2.9.1=h8a8886c_0
   - idna=2.8=py36_0
   - intel-openmp=2019.1=144
   - jpeg=9b=h024ee3a_2
+  - libcurl=7.61.0=h1ad7b7a_0
+  - libdeflate=1.0=h470a237_0
   - libffi=3.2.1=hfc679d8_5
   - libgcc-ng=7.2.0=hdf63c60_3
   - libgfortran-ng=7.2.0=hdf63c60_3
   - libpng=1.6.34=hb9fc6fc_0
+  - libssh2=1.8.0=h9cfc8f7_4
   - libstdcxx-ng=7.2.0=hdf63c60_3
   - libtiff=4.0.9=he85c1e1_1
   - mafft=7.407=0
@@ -52,6 +57,7 @@ dependencies:
   - readline=7.0=haf1bffa_1
   - reportlab=3.5.2=py36h5871c9b_0
   - requests=2.21.0=py36_0
+  - samtools=1.9=h8ee4bcc_1
   - setuptools=40.7.3=py36_0
   - six=1.12.0=py36_0
   - spades=3.13.0=0
@@ -65,3 +71,4 @@ dependencies:
   - zlib=1.2.11=h470a237_3
   - pip:
     - mako==1.0.7
+
