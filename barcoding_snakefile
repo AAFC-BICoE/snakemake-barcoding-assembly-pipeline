@@ -62,8 +62,8 @@ rule generate_consensus:
 
 rule generate_multifasta:
     input:
-        "consensus_fastq"
+        expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
     output:
         "BBMap_consensus.fasta"
     conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/fastq_to_fasta.py -d {input.dir} - o {output}"
+    shell: "python pipeline_files/fastq_to_fasta.py -d consensus_fastq  -o {output}"

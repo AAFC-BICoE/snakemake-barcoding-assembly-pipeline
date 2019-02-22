@@ -49,8 +49,10 @@ def parse_fastq(directory, output):
                 records.append(record)
 
 
-    # Writes fasta files to sequence
+    # Sort list based on quality of sequences
+    records.sort(key=lambda x: int(str(x.description).replace("Low Quality Positions: ", "")))
 
+    # Writes fasta files to sequence
     with open(output, "w") as g:
         for record in records:
             SeqIO.write(record, g, "fasta")
