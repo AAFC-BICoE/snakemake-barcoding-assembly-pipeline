@@ -23,6 +23,7 @@ rule all:
         consensus_fasta = "BBMap_consensus.fasta"
 
 rule align_to_reference:
+    # Aligns the fastq files to the CO1 reference using BBMap
     input:
         r1 = 'trimmed/{sample}_trimmed_L001_R1_001.fastq.gz',
         r2 = 'trimmed/{sample}_trimmed_L001_R2_001.fastq.gz'
@@ -33,6 +34,7 @@ rule align_to_reference:
 
 
 rule sort_alignments:
+    # Sorts the alignment for indexing
     input:
         "bbmap/{sample}.sam"
     output:
@@ -42,6 +44,7 @@ rule sort_alignments:
 
 
 rule index_alignments:
+    # Indexes the alignments
     input:
         "bbmap/{sample}_sorted.bam"
     output:
@@ -51,6 +54,7 @@ rule index_alignments:
 
 
 rule generate_consensus:
+    # Follows a standard way to convert alignments into consensus files
     input:
         bam = "bbmap/{sample}_sorted.bam",
         bai = "bbmap/{sample}_sorted.bam.bai"
@@ -61,6 +65,7 @@ rule generate_consensus:
 
 
 rule generate_multifasta:
+    # Generates a multifasta sorted by quality of the alignments
     input:
         expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
     output:

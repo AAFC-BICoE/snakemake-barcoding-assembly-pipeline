@@ -30,25 +30,31 @@ rule all:
 
         spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
 
-        all_spades_assemblies = directory("all_spades_assemblies"),
+        #all_spades_assemblies = directory("all_spades_assemblies"),
+        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
+
         final_good_contigs = "final_good_contigs.fasta",
         final_medium_contigs = "final_medium_contigs.fasta",
         final_good_contigs_aligned = "final_good_contigs_aligned.fasta",
         final_medium_contigs_aligned = "final_medium_contigs_aligned.fasta",
 
+        problem_contigs = "problem_fastas.txt",
+
         bold_good = "final_good_contigs_aligned.fasta_output.csv",
         nohits_good = "final_good_contigs_aligned_nohits.txt"
 
-rule fastqc:
-    # Quality Control check on raw data before adaptor trimming
-    input:
-        directory("fastq")
-    output:
-         fastqc_dir = directory("fastqc")
-    log: "logs/fastqc.log"
-    conda: "pipeline_files/barcoding.yml"
-    shell:
-        "mkdir fastqc; fastqc -o fastqc fastq/*.fastq.gz 2>{log} 2>&1"
+
+# Can crash on large number of   samples, unneeded really
+#rule fastqc:
+#    # Quality Control check on raw data before adaptor trimming
+#    input:
+#        directory("fastq")
+#    output:
+#         fastqc_dir = directory("fastqc")
+#    log: "logs/fastqc.log"
+#    conda: "pipeline_files/barcoding.yml"
+#    shell:
+#        "mkdir fastqc; fastqc -o fastqc fastq/*.fastq.gz 2>{log} 2>&1"
 
 
 rule bbduk:
@@ -64,16 +70,17 @@ rule bbduk:
     shell: "bbduk.sh in1={input.r1} out1={output.out1} in2={input.r2} out2={output.out2} ref={adaptors} qtrim=rl trimq=20 ktrim=r k=23 mink=11 hdist=1 tpe tbo 2>{log} 2>&1; touch {output.out1} {output.out2}"
 
 
-rule fastqc_trimmed:
-    # Quality Control check after adaptor trimming
-    input: r1=expand("trimmed/{sample}_trimmed_L001_R1_001.fastq.gz", sample=SAMPLES),
-        r2 = expand("trimmed/{sample}_trimmed_L001_R2_001.fastq.gz", sample=SAMPLES)
-    output:
-        fastqc_trimmed_dir = directory("fastqc_trimmed")
-    log: "logs/fastqc_trimmed.log"
-    conda: "pipeline_files/barcoding.yml"
-    shell:
-        "mkdir fastqc_trimmed; fastqc -o fastqc_trimmed trimmed/*.fastq.gz 2>{log} 2>&1"
+# Can crash on large number of samples, unneeded really
+#rule fastqc_trimmed:
+#    # Quality Control check after adaptor trimming
+#    input: r1=expand("trimmed/{sample}_trimmed_L001_R1_001.fastq.gz", sample=SAMPLES),
+#        r2 = expand("trimmed/{sample}_trimmed_L001_R2_001.fastq.gz", sample=SAMPLES)
+#    output:
+#        fastqc_trimmed_dir = directory("fastqc_trimmed")
+#    log: "logs/fastqc_trimmed.log"
+#    conda: "pipeline_files/barcoding.yml"
+#    shell:
+#        "mkdir fastqc_trimmed; fastqc -o fastqc_trimmed trimmed/*.fastq.gz 2>{log} 2>&1"
 
 
 rule spades:
@@ -95,7 +102,7 @@ rule gather_assemblies:
     input:
         assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES)
     output:
-        all_spades_assemblies = directory("all_spades_assemblies")
+        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES)
     run:
         for assembly in input.assemblies:
             if os.path.exists(assembly):
@@ -104,22 +111,22 @@ rule gather_assemblies:
                 else:
                     os.makedirs("all_spades_assemblies")
             newname = assembly.split("/")[1] + "_S.fasta"
-            copyfile(assembly, os.path.join(output.all_spades_assemblies, newname))
+            copyfile(assembly, os.path.join("all_spades_assemblies", newname))
 
 
-rule fastq_quality_metrics:
-    # BBMap's Stats.sh assembly metrics for fastq files
-    input: directory("fastq")
-    output: "fastq_metrics.tsv"
-    conda: "pipeline_files/barcoding.yml"
-    shell: "statswrapper.sh {input}/*.fastq.gz > {output}"
+#rule fastq_quality_metrics:
+#    # BBMap's Stats.sh assembly metrics for fastq files
+#    input: directory("fastq")
+#    output: "fastq_metrics.tsv"
+#    conda: "pipeline_files/barcoding.yml"
+#    shell: "statswrapper.sh {input}/*.fastq.gz > {output}"
 
 
 rule gather_contigs:
-    input: directory("all_spades_assemblies")
-    output: "final_good_contigs.fasta", "final_medium_contigs.fasta", directory("problem_fastas")
+    input: expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES)
+    output: "final_good_contigs.fasta", "final_medium_contigs.fasta", "problem_fastas.txt"
     conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/gather_contigs.py -s {input}"
+    shell: "python pipeline_files/gather_contigs.py -s all_spades_assemblies"
 
 
 rule align_to_reference:
@@ -137,8 +144,8 @@ rule align_medium_to_reference:
 
 
 rule align_poor_to_reference:
-    input: directory("problem_fastas")
-    output: directory("problem_fastas")
+    input: "problem_fastas.txt"
+    output: "problem_fastas.txt"
     conda: "pipeline_files/barcoding.yml"
     shell: "for f in problem_fastas/*; do cp pipeline_files/co1.fasta temp.fasta && cat $f >> temp.fasta && mafft --adjustdirection temp.fasta > problem_fastas_aligned/${f//+(*\/|.*)} && rm temp.fasta; done"
 
@@ -151,7 +158,9 @@ rule bold_retriever:
 
 
 rule bold_parser:
-    input: "final_good_contigs_aligned.fasta_output.csv"
+    input:
+        bold_output = "final_good_contigs_aligned.fasta_output.csv",
+        multifasta = "final_good_contigs_aligned.fasta"
     output: "final_good_contigs_aligned_nohits.txt"
     conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/bold_retriever_parser.py -f final_good_contigs_aligned.fasta_output.csv"
+    shell: "python pipeline_files/bold_retriever_parser.py -f {input.bold_output} -i {input.multifasta}"
