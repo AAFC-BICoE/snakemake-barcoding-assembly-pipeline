@@ -1,0 +1,44 @@
+# Snakemake file to process CO1 Barcoding Genes Sequenced on a MiSeq
+# Author: Jackson Eyres jackson.eyres@canada.ca
+# Copyright: Government of Canada
+# License: MIT
+# Version 0.1
+
+rule all:
+    input:
+        bold_good = "final_good_contigs_aligned.fasta_output.csv",
+        bold_medium = "final_medium_contigs_aligned.fasta_output.csv",
+        nohits_good = "final_good_contigs_aligned_nohits.txt",
+        nohits_medium = "final_medium_contigs_aligned_nohits.txt"
+
+
+rule bold_retriever:
+    input: "final_good_contigs_aligned.fasta"
+    output: "final_good_contigs_aligned.fasta_output.csv"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "python pipeline_files/bold_retriever-master/bold_retriever.py -f {input} -db COX1_SPECIES"
+
+
+rule bold_retriever_medium:
+    input: "final_medium_contigs_aligned.fasta"
+    output: "final_medium_contigs_aligned.fasta_output.csv"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "python pipeline_files/bold_retriever-master/bold_retriever.py -f {input} -db COX1_SPECIES"
+
+
+rule bold_parser:
+    input:
+        bold_output = "final_good_contigs_aligned.fasta_output.csv",
+        multifasta = "final_good_contigs_aligned.fasta"
+    output: "final_good_contigs_aligned_nohits.txt"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "python pipeline_files/bold_retriever_parser.py -f {input.bold_output} -i {input.multifasta}"
+
+
+rule bold_parser_medium:
+    input:
+        bold_output = "final_medium_contigs_aligned.fasta_output.csv",
+        multifasta = "final_medium_contigs_aligned.fasta"
+    output: "final_medium_contigs_aligned_nohits.txt"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "python pipeline_files/bold_retriever_parser.py -f {input.bold_output} -i {input.multifasta}"

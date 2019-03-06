@@ -9,12 +9,6 @@ import os
 from shutil import copyfile
 
 # Configuration Settings
-
-# Location of fastq folder, default "fastq". Phyluce requires files to not mix "-" and "_", so fastq files renamed
-for f in glob.glob('fastq/*.fastq.gz'):
-    basename = os.path.basename(f)
-    new_basename = ""
-
 SAMPLES = set([os.path.basename(f).replace("_L001_R1_001.fastq.gz","").replace("_L001_R2_001.fastq.gz","") for f in glob.glob('fastq/*.fastq.gz')])
 
 # Location of adaptor.fa for trimming
@@ -26,11 +20,12 @@ rule all:
         r1_trimmed = expand("trimmed/{sample}_trimmed_L001_R1_001.fastq.gz", sample=SAMPLES),
         r2_trimmed = expand("trimmed/{sample}_trimmed_L001_R2_001.fastq.gz", sample=SAMPLES),
 
-        # fastqc_trimmed_dir = directory("fastqc_trimmed"),
+        # When SPAdes fails, it wont create contigs.fasta, but should create input_dataset.yaml
+        spades_datasets = expand("spades_assemblies/{sample}/input_dataset.yaml", sample=SAMPLES),
 
+        spades_assemblies_temp = expand("spades_assemblies/{sample}/contigs_temp.fasta", sample=SAMPLES),
         spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
 
-        #all_spades_assemblies = directory("all_spades_assemblies"),
         assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
 
         final_good_contigs = "final_good_contigs.fasta",
@@ -39,26 +34,11 @@ rule all:
         final_medium_contigs_aligned = "final_medium_contigs_aligned.fasta",
 
         problem_contigs = "problem_fastas.txt",
-
-        bold_good = "final_good_contigs_aligned.fasta_output.csv",
-        nohits_good = "final_good_contigs_aligned_nohits.txt"
-
-
-# Can crash on large number of   samples, unneeded really
-#rule fastqc:
-#    # Quality Control check on raw data before adaptor trimming
-#    input:
-#        directory("fastq")
-#    output:
-#         fastqc_dir = directory("fastqc")
-#    log: "logs/fastqc.log"
-#    conda: "pipeline_files/barcoding.yml"
-#    shell:
-#        "mkdir fastqc; fastqc -o fastqc fastq/*.fastq.gz 2>{log} 2>&1"
+        #problem_fasta_directory = directory("problem_fastas_aligned")
 
 
 rule bbduk:
-    # Sequencing Adaptor trimming
+    # Sequencing Adaptor and quality trimming
     input:
         r1 = 'fastq/{sample}_L001_R1_001.fastq.gz',
         r2 = 'fastq/{sample}_L001_R2_001.fastq.gz'
@@ -70,31 +50,42 @@ rule bbduk:
     shell: "bbduk.sh in1={input.r1} out1={output.out1} in2={input.r2} out2={output.out2} ref={adaptors} qtrim=rl trimq=20 ktrim=r k=23 mink=11 hdist=1 tpe tbo 2>{log} 2>&1; touch {output.out1} {output.out2}"
 
 
-# Can crash on large number of samples, unneeded really
-#rule fastqc_trimmed:
-#    # Quality Control check after adaptor trimming
-#    input: r1=expand("trimmed/{sample}_trimmed_L001_R1_001.fastq.gz", sample=SAMPLES),
-#        r2 = expand("trimmed/{sample}_trimmed_L001_R2_001.fastq.gz", sample=SAMPLES)
-#    output:
-#        fastqc_trimmed_dir = directory("fastqc_trimmed")
-#    log: "logs/fastqc_trimmed.log"
-#    conda: "pipeline_files/barcoding.yml"
-#    shell:
-#        "mkdir fastqc_trimmed; fastqc -o fastqc_trimmed trimmed/*.fastq.gz 2>{log} 2>&1"
-
-
 rule spades:
     # Assembles fastq files using default settings
     input:
         r1 = "trimmed/{sample}_trimmed_L001_R1_001.fastq.gz",
         r2 = "trimmed/{sample}_trimmed_L001_R2_001.fastq.gz"
     output:
-        "spades_assemblies/{sample}/contigs.fasta"
+        "spades_assemblies/{sample}/input_dataset.yaml"
     log: "logs/spades.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
-    threads: 2
+    # On certain samples, SPAdes fails and produces a non zero exit code which causes snakemake to end prematurely.
+    # This code is subsequently ignored in the shell command and converted to a zero exit code.
+    # Failed SPAdes runs are excluded from further analysis
     shell:
-        "spades.py -t 2 -1 {input.r1} -2 {input.r2} -o spades_assemblies/{wildcards.sample} 2>{log} 2>&1"
+        "spades.py -1 {input.r1} -2 {input.r2} -o spades_assemblies/{wildcards.sample} || exit 0"
+
+
+rule spades_touch:
+    # Just to workaround snakemake restrictions with failed spades runs
+    input:
+        "spades_assemblies/{sample}/input_dataset.yaml"
+    output:
+        "spades_assemblies/{sample}/contigs_temp.fasta"
+    conda: "pipeline_files/barcoding.yml"
+    shell:
+        "touch spades_assemblies/{wildcards.sample}/contigs.fasta; cp spades_assemblies/{wildcards.sample}/contigs.fasta {output}"
+
+
+rule spades_touch_2:
+    # Just to workaround snakemake restrictions with failed spades runs
+    input:
+        "spades_assemblies/{sample}/contigs_temp.fasta"
+    output:
+        "spades_assemblies/{sample}/contigs.fasta"
+    conda: "pipeline_files/barcoding.yml"
+    shell:
+        "cp {input} {output}"
 
 
 rule gather_assemblies:
@@ -114,15 +105,8 @@ rule gather_assemblies:
             copyfile(assembly, os.path.join("all_spades_assemblies", newname))
 
 
-#rule fastq_quality_metrics:
-#    # BBMap's Stats.sh assembly metrics for fastq files
-#    input: directory("fastq")
-#    output: "fastq_metrics.tsv"
-#    conda: "pipeline_files/barcoding.yml"
-#    shell: "statswrapper.sh {input}/*.fastq.gz > {output}"
-
-
 rule gather_contigs:
+    # Custom script to seperate out contigs into high, medium and low quality
     input: expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES)
     output: "final_good_contigs.fasta", "final_medium_contigs.fasta", "problem_fastas.txt"
     conda: "pipeline_files/barcoding.yml"
@@ -130,6 +114,7 @@ rule gather_contigs:
 
 
 rule align_to_reference:
+    # Orients contigs to a COI reference for 3' to 5' for BOLD submission
     input: "final_good_contigs.fasta"
     output: "final_good_contigs_aligned.fasta"
     conda: "pipeline_files/barcoding.yml"
@@ -137,30 +122,17 @@ rule align_to_reference:
 
 
 rule align_medium_to_reference:
+    # Orients contigs to a COI reference for 3' to 5' for BOLD submission
     input: "final_medium_contigs.fasta"
     output: "final_medium_contigs_aligned.fasta"
     conda: "pipeline_files/barcoding.yml"
     shell: "cp pipeline_files/co1.fasta temp.fasta && cat final_medium_contigs.fasta >> temp.fasta && mafft --adjustdirection temp.fasta > final_medium_contigs_aligned.fasta && rm temp.fasta"
 
 
-rule align_poor_to_reference:
-    input: "problem_fastas.txt"
-    output: "problem_fastas.txt"
-    conda: "pipeline_files/barcoding.yml"
-    shell: "for f in problem_fastas/*; do cp pipeline_files/co1.fasta temp.fasta && cat $f >> temp.fasta && mafft --adjustdirection temp.fasta > problem_fastas_aligned/${f//+(*\/|.*)} && rm temp.fasta; done"
+#rule align_poor_to_reference:
+#    # Orients contigs to a COI reference for 3' to 5' for BOLD submission
+#    input: "problem_fastas.txt"
+#    output: directory("problem_fastas_aligned")
+#    conda: "pipeline_files/barcoding.yml"
+#    shell: "for f in problem_fastas/*; do cp pipeline_files/co1.fasta temp.fasta && cat $f >> temp.fasta && mafft --adjustdirection temp.fasta > problem_fastas_aligned/$f//+(*\/|.*)} && rm temp.fasta; done"
 
-
-rule bold_retriever:
-    input: "final_good_contigs_aligned.fasta"
-    output: "final_good_contigs_aligned.fasta_output.csv"
-    conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/bold_retriever-master/bold_retriever.py -f final_good_contigs_aligned.fasta -db COX1_SPECIES"
-
-
-rule bold_parser:
-    input:
-        bold_output = "final_good_contigs_aligned.fasta_output.csv",
-        multifasta = "final_good_contigs_aligned.fasta"
-    output: "final_good_contigs_aligned_nohits.txt"
-    conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/bold_retriever_parser.py -f {input.bold_output} -i {input.multifasta}"

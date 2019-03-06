@@ -5,7 +5,7 @@ Pipeline for processing Illumina sequencing data consisting of COI PCR amplicons
 1) Trims adapters and bases below <20 quality score [BBDuk](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbduk-guide/)
 2) Assembles trimmed reads [SPAdes](http://cab.spbu.ru/software/spades/)
 3) Detects and extracts target contigs
-4) Alignssequences to COI reference (Chrysomya putoria (NCBI accession number NC002697) to correct 5'-3' orientation [Mafft](https://mafft.cbrc.jp/alignment/software/) 
+4) Aligns sequences to COI reference (Chrysomya putoria (NCBI accession number NC002697) to correct 5'-3' orientation [Mafft](https://mafft.cbrc.jp/alignment/software/) 
 5) Submit Sequences to BOLD for Identification [Bold Retriever](https://bold-retriever.readthedocs.io/en/latest/)
 
 ### Prerequisites
@@ -23,18 +23,27 @@ conda install -c bioconda -c conda-forge snakemake
 
 ## Getting Started
 
-Within a working directory:
-
-* Copy Snakefile and pipeline_files directory into working directory
-* Create a folder named "fastq" that contains Illumina based raw reads in fastq.gz format 
-
-After initializing a conda enviroment containing snakemake, pipeline can be invoked from within working directory 
+* Create and enter a working directory:
+* Clone repository
+```bash
+git clone https://github.com/AAFC-BICoE/snakemake-barcoding-assembly-pipeline.git .
+```
+* Create a folder named "fastq" and populate with COI Illumina reads in fastq.gz format 
+* Initialize conda environment containing snakemake
+```bash
+source ~/miniconda3/bin/activate
+```
+* Invoke pipeline from within working directory 
 ```
 snakemake --use-conda -k
 ```
-A seperate pipeline was created to generate consensus sequences from reads mapped to a COI reference gene
+* Alternative pipeline to generate consensus sequences from reads mapped to a COI reference gene
 ```
 snakemake -s barcoding_snakefile --use-conda -k
+```
+* Using Bold Retriever after successful run of original pipeline
+```bash
+snakemake -s bold_retriever_snakefile --use-conda -k
 ```
 
 ## Built With
