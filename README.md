@@ -46,6 +46,30 @@ snakemake -s barcoding_snakefile --use-conda -k
 snakemake -s bold_retriever_snakefile --use-conda -k
 ```
 
+
+## Methodology
+Pipeline was designed to handle COI genes amplified in overlapping fragements from thousands of Diptera specimens. 
+Can be used to handle other species so long as the co1.fasta reference is changed to a more appropriate species.
+
+Reads are trimmed and assembled with SPAdes with provides coverage information for each contig. 
+Each assembly is examined for a single high coverage contig above 600 basepairs, strongly indicating a successful COI
+amplification without contamination. If the single high coverage contig is to short but still above 400 basepairs, 
+it is put into a medium quality pool rather than good quality. 
+
+Assemblies that failed, or contain a variety of high coverage contigs, or no contigs above 400 basepairs with 
+high coverage are pooled into a folder called problem_fastas
+
+As the assembly process is imperfect, the alternative method is to align reads to a co1 reference and generate a 
+consensus sequence. This process tends to introduce degenerate bases and unknown bases into the consensus, especially 
+if contamination is present in the reads. Invoking barcoding_snakefile creates a multifasta containing all consensus 
+sequences, sorted from least degeneracy to most. 
+
+To examine the pileups of reads against the reference, [Tablet](https://ics.hutton.ac.uk/tablet/) can be used along with a sorted and indexed bam file
+```bash
+samtools sort sample.sam > sample_sorted.bam
+samtools index sample_sorted.bam
+```
+
 ## Built With
 
 * [Python](https://www.python.org/doc/) - Programming language
