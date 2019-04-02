@@ -30,15 +30,15 @@ rule all:
         spades_assemblies_temp = expand("spades_assemblies/{sample}/contigs_temp.fasta", sample=SAMPLES),
         spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
 
-#        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
+        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
+
+        final_good_contigs = "final_good_contigs.fasta",
+        final_medium_contigs = "final_medium_contigs.fasta",
+        final_good_contigs_aligned = "final_good_contigs_aligned.fasta",
+        final_medium_contigs_aligned = "final_medium_contigs_aligned.fasta",
 #
-#        final_good_contigs = "final_good_contigs.fasta",
-#        final_medium_contigs = "final_medium_contigs.fasta",
-#        final_good_contigs_aligned = "final_good_contigs_aligned.fasta",
-#        final_medium_contigs_aligned = "final_medium_contigs_aligned.fasta",
-#
-#        problem_contigs = "problem_fastas.txt",
-        #problem_fasta_directory = directory("problem_fastas_aligned")
+        problem_contigs = "problem_fastas.txt",
+#        problem_fasta_directory = directory("problem_fastas_aligned")
 
 
 rule bbduk:
