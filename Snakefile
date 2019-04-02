@@ -13,27 +13,31 @@ SAMPLES = set([os.path.basename(f).replace("_L001_R1_001.fastq.gz","").replace("
 
 # Location of adaptor.fa for trimming
 adaptors = "pipeline_files/adapters.fa"
-
+primers = "pipeline_files/diptera_primers.fasta"
 
 rule all:
     input:
         r1_trimmed = expand("trimmed/{sample}_trimmed_L001_R1_001.fastq.gz", sample=SAMPLES),
         r2_trimmed = expand("trimmed/{sample}_trimmed_L001_R2_001.fastq.gz", sample=SAMPLES),
 
+        merged = expand("merged/{sample}_merged.fq", sample=SAMPLES),
+        unmerged = expand("unmerged/{sample}_unmerged.fq", sample=SAMPLES),
+
+        sliced = expand("sliced/{sample}_sliced.fq", sample=SAMPLES),
         # When SPAdes fails, it wont create contigs.fasta, but should create input_dataset.yaml
-        spades_datasets = expand("spades_assemblies/{sample}/input_dataset.yaml", sample=SAMPLES),
-
-        spades_assemblies_temp = expand("spades_assemblies/{sample}/contigs_temp.fasta", sample=SAMPLES),
-        spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
-
-        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
-
-        final_good_contigs = "final_good_contigs.fasta",
-        final_medium_contigs = "final_medium_contigs.fasta",
-        final_good_contigs_aligned = "final_good_contigs_aligned.fasta",
-        final_medium_contigs_aligned = "final_medium_contigs_aligned.fasta",
-
-        problem_contigs = "problem_fastas.txt",
+#        spades_datasets = expand("spades_assemblies/{sample}/input_dataset.yaml", sample=SAMPLES),
+#
+#        spades_assemblies_temp = expand("spades_assemblies/{sample}/contigs_temp.fasta", sample=SAMPLES),
+#        spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
+#
+#        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
+#
+#        final_good_contigs = "final_good_contigs.fasta",
+#        final_medium_contigs = "final_medium_contigs.fasta",
+#        final_good_contigs_aligned = "final_good_contigs_aligned.fasta",
+#        final_medium_contigs_aligned = "final_medium_contigs_aligned.fasta",
+#
+#        problem_contigs = "problem_fastas.txt",
         #problem_fasta_directory = directory("problem_fastas_aligned")
 
 
@@ -48,6 +52,28 @@ rule bbduk:
     log: "logs/bbduk.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
     shell: "bbduk.sh in1={input.r1} out1={output.out1} in2={input.r2} out2={output.out2} ref={adaptors} qtrim=rl trimq=20 ktrim=r k=23 mink=11 hdist=1 tpe tbo 2>{log} 2>&1; touch {output.out1} {output.out2}"
+
+
+rule bbmerge:
+    input:
+        r1 = "trimmed/{sample}_trimmed_L001_R1_001.fastq.gz",
+        r2 = "trimmed/{sample}_trimmed_L001_R2_001.fastq.gz"
+    output:
+        merged = "merged/{sample}_merged.fq",
+        unmerged = "unmerged/{sample}_unmerged.fq"
+    log: "logs/bbmerge.{sample}.log"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "bbduk.sh in={input.r1} in2={input.r2} outm={output.merged} outu={output.unmerged} 2>{log} 2>&1; touch {output.merged} {output.unmerged}"
+
+
+rule remove_primers:
+    input:
+        "merged/{sample}_merged.fq"
+    output:
+        "sliced/{sample}_sliced.fq"
+    log: "logs/slice.{sample}.log"
+    conda: "pipeline_files/barcoding.yml"
+    shell: "python trim_primers.py -f {input} -p {primers} -o {output} 2>{log} 2>&1"
 
 
 rule spades:
