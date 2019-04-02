@@ -25,11 +25,11 @@ rule all:
 
         sliced = expand("sliced/{sample}_sliced.fq", sample=SAMPLES),
         # When SPAdes fails, it wont create contigs.fasta, but should create input_dataset.yaml
-#        spades_datasets = expand("spades_assemblies/{sample}/input_dataset.yaml", sample=SAMPLES),
-#
-#        spades_assemblies_temp = expand("spades_assemblies/{sample}/contigs_temp.fasta", sample=SAMPLES),
-#        spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
-#
+        spades_datasets = expand("spades_assemblies/{sample}/input_dataset.yaml", sample=SAMPLES),
+
+        spades_assemblies_temp = expand("spades_assemblies/{sample}/contigs_temp.fasta", sample=SAMPLES),
+        spades_assemblies = expand("spades_assemblies/{sample}/contigs.fasta", sample=SAMPLES),
+
 #        assemblies_renamed = expand("all_spades_assemblies/{sample}_S.fasta", sample=SAMPLES),
 #
 #        final_good_contigs = "final_good_contigs.fasta",
@@ -63,7 +63,7 @@ rule bbmerge:
         unmerged = "unmerged/{sample}_unmerged.fq"
     log: "logs/bbmerge.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
-    shell: "bbduk.sh in={input.r1} in2={input.r2} outm={output.merged} outu={output.unmerged} 2>{log} 2>&1; touch {output.merged} {output.unmerged}"
+    shell: "bbmerge.sh in={input.r1} in2={input.r2} outm={output.merged} outu={output.unmerged} 2>{log} 2>&1; touch {output.merged} {output.unmerged}"
 
 
 rule remove_primers:
@@ -73,14 +73,13 @@ rule remove_primers:
         "sliced/{sample}_sliced.fq"
     log: "logs/slice.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
-    shell: "python trim_primers.py -f {input} -p {primers} -o {output} 2>{log} 2>&1"
+    shell: "python pipeline_files/trim_primers.py -f {input} -p {primers} -o {output} 2>{log} 2>&1"
 
 
 rule spades:
     # Assembles fastq files using default settings
     input:
-        r1 = "trimmed/{sample}_trimmed_L001_R1_001.fastq.gz",
-        r2 = "trimmed/{sample}_trimmed_L001_R2_001.fastq.gz"
+        s = "sliced/{sample}_sliced.fq",
     output:
         "spades_assemblies/{sample}/input_dataset.yaml"
     log: "logs/spades.{sample}.log"
@@ -89,7 +88,7 @@ rule spades:
     # This code is subsequently ignored in the shell command and converted to a zero exit code.
     # Failed SPAdes runs are excluded from further analysis
     shell:
-        "spades.py -1 {input.r1} -2 {input.r2} -o spades_assemblies/{wildcards.sample} || exit 0"
+        "spades.py -s {input.s} -o spades_assemblies/{wildcards.sample} || exit 0"
 
 
 rule spades_touch:

@@ -13,9 +13,11 @@ def main():
                         help='Primer File in .fasta format', required=True)
     parser.add_argument('-o', type=str,
                         help='Output file', required=True)
+    parser.add_argument('-dg', type=str,
+                        help='Path to degenerate oligo Script', default="pipeline_files/dg")
     args = parser.parse_args()
 
-    find_primers(args.f, args.p, args.o)
+    find_primers(args.f, args.p, args.o, args.dg)
 
 
 def get_primers(file):
@@ -33,14 +35,14 @@ def get_primers(file):
     return primer_sequences
 
 
-def find_primers(fastq_file, primer_file, output_file):
+def find_primers(fastq_file, primer_file, output_file, dg):
     with open(fastq_file) as f:
         primers = get_primers(primer_file)
 
         # Look for first primer in the reads, trim off everything before, and cut off degenerate reverse primer
         primer_a_f = str(primers[0].seq)
         primer_b_r = str(primers[3].seq)
-        dg_result = subprocess.run(['./dg', primer_b_r], stdout=subprocess.PIPE).stdout.decode('utf-8')
+        dg_result = subprocess.run(['./{}'.format(dg), primer_b_r], stdout=subprocess.PIPE).stdout.decode('utf-8')
         # print(dg_result)
         reverse_primers = dg_result.split('\n')[:-1]
 
