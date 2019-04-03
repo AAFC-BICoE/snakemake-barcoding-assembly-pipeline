@@ -1,4 +1,6 @@
 """
+Examines a CO1 assemblies for the presence of a high coverage appropriate length contig representing a good barcode
+sequence. Combines all good contigs into a single multi-fasta
 Author: Jackson Eyres
 Copyright: Government of Canada
 License: MIT
@@ -16,12 +18,13 @@ def main():
                         help='Folder containing SPAdes assemblies', required=True)
     args = parser.parse_args()
 
-    combine_uces(args.s)
+    extract_contigs(args.s)
 
 
-def combine_uces(spades_directory):
+def extract_contigs(spades_directory):
     """
-    Takes the UCES from an rnaSPAdes and SPAdes run and creates a seperate file taking only the best sequence per UCE
+    Scans every spades assembly in a directory for a contig that appropriately looks like CO1 with high coverage.
+    :param spades_directory:
     :return:
     """
 
@@ -42,8 +45,14 @@ def combine_uces(spades_directory):
         specimen = os.path.basename(fasta)
         specimen_name = specimen.replace(".fasta", "")
         contigs = []
+
+        max_coverage = 0
         for seq in SeqIO.parse(fasta, 'fasta'):
             contigs.append(seq)
+            # Find highest coverage contig
+            coverage = float(seq.description.split("_")[-1])
+            if coverage > max_coverage:
+                max_coverage = coverage
 
         temp_final_good_contigs = []
         temp_final_medium_contigs = []
@@ -71,7 +80,10 @@ def combine_uces(spades_directory):
     print("Problem Fastas: ", len(problematic_fastas))
 
     problematic_path = "problem_fastas.txt"
-    os.makedirs("problem_fastas")
+    if os.path.exists("problem_fastas"):
+        pass
+    else:
+        os.makedirs("problem_fastas")
     with open(problematic_path, "w") as e:
         for item in problematic_fastas:
             e.write(os.path.split(item)[1] + "\n")

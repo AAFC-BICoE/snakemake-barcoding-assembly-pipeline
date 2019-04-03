@@ -51,10 +51,12 @@ rule bbduk:
         out2 = "trimmed/{sample}_trimmed_L001_R2_001.fastq.gz",
     log: "logs/bbduk.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
-    shell: "bbduk.sh in1={input.r1} out1={output.out1} in2={input.r2} out2={output.out2} ref={adaptors} qtrim=rl trimq=20 ktrim=r k=23 mink=11 hdist=1 tpe tbo 2>{log} 2>&1; touch {output.out1} {output.out2}"
+    shell: "bbduk.sh in1={input.r1} out1={output.out1} in2={input.r2} out2={output.out2} ref={adaptors} qtrim=rl trimq=20 ktrim=r k=23 mink=11 hdist=1 tpe tbo &>{log}; touch {output.out1} {output.out2}"
 
 
 rule bbmerge:
+    # Merges paired end reads with overlapping regions into a single long fragement.
+    # Useful for amplicon based sequencing
     input:
         r1 = "trimmed/{sample}_trimmed_L001_R1_001.fastq.gz",
         r2 = "trimmed/{sample}_trimmed_L001_R2_001.fastq.gz"
@@ -63,21 +65,22 @@ rule bbmerge:
         unmerged = "unmerged/{sample}_unmerged.fq"
     log: "logs/bbmerge.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
-    shell: "bbmerge.sh in={input.r1} in2={input.r2} outm={output.merged} outu={output.unmerged} 2>{log} 2>&1; touch {output.merged} {output.unmerged}"
+    shell: "bbmerge.sh in={input.r1} in2={input.r2} outm={output.merged} outu={output.unmerged} &>{log}; touch {output.merged} {output.unmerged}"
 
 
 rule remove_primers:
+    # Custom script to clean up reads of any degenerate primers and spurious sequencing bases
     input:
         "merged/{sample}_merged.fq"
     output:
         "sliced/{sample}_sliced.fq"
     log: "logs/slice.{sample}.log"
     conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/trim_primers.py -f {input} -p {primers} -o {output} 2>{log} 2>&1"
+    shell: "python pipeline_files/trim_primers.py -f {input} -p {primers} -o {output} &>{log}"
 
 
 rule spades:
-    # Assembles fastq files using default settings
+    # Assembles spliced fastq files using default settings
     input:
         s = "sliced/{sample}_sliced.fq",
     output:
@@ -88,7 +91,7 @@ rule spades:
     # This code is subsequently ignored in the shell command and converted to a zero exit code.
     # Failed SPAdes runs are excluded from further analysis
     shell:
-        "spades.py -s {input.s} -o spades_assemblies/{wildcards.sample} || exit 0"
+        "spades.py -s {input.s} -o spades_assemblies/{wildcards.sample}  &>{log}|| exit 0"
 
 
 rule spades_touch:

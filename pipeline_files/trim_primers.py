@@ -1,3 +1,10 @@
+"""
+Script that takes in dual fragment merged paired end reads of Diptera CO1 and removed degenerate primers
+Author: Jackson Eyres
+Copyright: Government of Canada
+License: MIT
+"""
+
 from Bio import SeqIO
 import subprocess
 import os
@@ -36,14 +43,28 @@ def get_primers(file):
 
 
 def find_primers(fastq_file, primer_file, output_file, dg):
+    """
+    Scans reads for forward or reverse primers. If fragment A, removes everything before the forward primer, and
+    removes the degenerate reverse primer. If fragement B, removed the degenerate forward primer, and everything beyond
+    the reverse primer. Also eliminates any reads that are too short, or have no primers detected. The remaining reads
+    can properly assembly without any internal degeneracy.
+
+    -----------------------
+    Forward A       --------------------
+                               Reverse B
+    :param fastq_file:
+    :param primer_file:
+    :param output_file:
+    :param dg: Script to generate oligos of degenerate primers
+    :return:
+    """
     with open(fastq_file) as f:
         primers = get_primers(primer_file)
+        primer_a_f = str(primers[0].seq) # Forward primer Fragment A
+        primer_b_r = str(primers[3].seq) # Reverse Primer Fragement B
 
-        # Look for first primer in the reads, trim off everything before, and cut off degenerate reverse primer
-        primer_a_f = str(primers[0].seq)
-        primer_b_r = str(primers[3].seq)
+        # Degenerate primers must be converted into their respective oligos for detection in the reads
         dg_result = subprocess.run(['./{}'.format(dg), primer_b_r], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        # print(dg_result)
         reverse_primers = dg_result.split('\n')[:-1]
 
         curated_fragment_a_reads = []
@@ -52,6 +73,7 @@ def find_primers(fastq_file, primer_file, output_file, dg):
         too_short_a = 0
         too_short_b = 0
         no_primers = 0
+
         for seq in SeqIO.parse(f, "fastq"):
             total_reads += 1
             """
