@@ -90,8 +90,9 @@ rule spades:
     # On certain samples, SPAdes fails and produces a non zero exit code which causes snakemake to end prematurely.
     # This code is subsequently ignored in the shell command and converted to a zero exit code.
     # Failed SPAdes runs are excluded from further analysis
+    threads: 4
     shell:
-        "spades.py -s {input.s} -o spades_assemblies/{wildcards.sample}  &>{log}|| exit 0"
+        "spades.py -t 4 -s {input.s} -o spades_assemblies/{wildcards.sample}  &>{log}|| exit 0"
 
 
 rule spades_touch:
