@@ -1,12 +1,15 @@
 # Snakemake Barcoding Assembly Pipeline
 
-Pipeline for processing Illumina sequencing data consisting of COI PCR amplicons . 
+Pipeline for processing Illumina sequencing data consisting of Diptera COI PCR amplicons. Current release is not
+compatible with other multi-fragment COI strategies. 
 
 1) Trims adapters and bases below <20 quality score [BBDuk](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbduk-guide/)
-2) Assembles trimmed reads [SPAdes](http://cab.spbu.ru/software/spades/)
-3) Detects and extracts target contigs
-4) Aligns sequences to COI reference (Chrysomya putoria (NCBI accession number NC002697) to correct 5'-3' orientation [Mafft](https://mafft.cbrc.jp/alignment/software/) 
-5) Submit Sequences to BOLD for Identification [Bold Retriever](https://bold-retriever.readthedocs.io/en/latest/)
+2) Merges paired end reads into either Fragment A or Fragment B corresponding to PCR amplicons 
+3) Removes degenerate primers from the fragments 
+4) Assembles reads using [SPAdes](http://cab.spbu.ru/software/spades/)
+5) Detects and extracts target contigs
+6) Aligns sequences to COI reference (Chrysomya putoria (NCBI accession number NC002697) to correct 5'-3' orientation [Mafft](https://mafft.cbrc.jp/alignment/software/) 
+7) Submit sequences to BOLD API for bulk identification [Bold Retriever](https://bold-retriever.readthedocs.io/en/latest/)
 
 ### Prerequisites
 
@@ -33,13 +36,13 @@ git clone https://github.com/AAFC-BICoE/snakemake-barcoding-assembly-pipeline.gi
 ```bash
 source ~/miniconda3/bin/activate
 ```
-* Invoke pipeline from within working directory 
+* Invoke pipeline from within working directory. Adjust cores to suit computer 
 ```
-snakemake --use-conda -k
+snakemake --use-conda -k --cores 32
 ```
 * Alternative pipeline to map reads to COI reference gene
 ```
-snakemake -s barcoding_snakefile --use-conda -k
+snakemake -s barcoding_snakefile --use-conda -k --cores 32
 ```
 * Using Bold Retriever after successful run of original pipeline
 ```bash
@@ -49,9 +52,9 @@ snakemake -s bold_retriever_snakefile --use-conda -k
 ## Methodology
 Pipeline was designed to handle COI genes amplified in overlapping fragements from thousands of Diptera specimens. 
 
-Reads are trimmed of adaptors and poor quality bases. Paired end reads are merged into single long fragements. 
-Each fragement is examined for primers, specifically Fragment A forward primer, and Fragement B reverse primer. 
-If Fragement A forward primer is detected, read is trimmed of the degenerate reverse primer. If Fragement B reverse
+Reads are trimmed of adaptors and poor quality bases. Paired end reads are merged into single long fragments. 
+Each fragment is examined for primers, specifically Fragment A forward primer, and Fragment B reverse primer. 
+If Fragment A forward primer is detected, read is trimmed of the degenerate reverse primer. If Fragment B reverse
 primer is detected, read is trimmed of degenerate forward primer. Reads are subsequently assembled with SPAdes 
 which provides length and coverage information for all contigs. 
 Each assembly is examined for a single high coverage contig above 600 basepairs, strongly indicating a successful COI
@@ -63,7 +66,7 @@ high coverage are pooled into a folder called problem_fastas
 
 In order to more fully understand the problems facing some of the assemblies, reads can be aligned to a CO1 reference, 
 and the corresponding pileups examined using barcoding_snakefile. To examine the pileups of reads against the reference, 
-[Tablet](https://ics.hutton.ac.uk/tablet/) can be used sorted bame file, and sorted.bam.bai index file. 
+[Tablet](https://ics.hutton.ac.uk/tablet/) can be used on the sorted.bam file, and sorted.bam.bai index file. 
 
 ## Built With
 
@@ -112,3 +115,9 @@ Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc
 * BOLD  
 Ratnasingham, S. & Hebert, P. D. N. (2007). BOLD : The Barcode of Life Data System (www.barcodinglife.org).
 Molecular Ecology Notes 7, 355–364. DOI: 10.1111/j.1471-8286.2006.01678.x
+
+## Author
+Jackson Eyres \
+Bioinformatics Programmer \
+Agriculture & Agri-Food Canada \
+jackson.eyres@canada.ca
