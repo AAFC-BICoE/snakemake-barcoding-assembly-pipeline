@@ -18,9 +18,9 @@ rule all:
         bbmaps = expand("bbmap/{sample}.sam", sample=SAMPLES),
         sorted_bbmaps = expand("bbmap/{sample}_sorted.bam", sample=SAMPLES),
         indexed_bbmaps = expand("bbmap/{sample}_sorted.bam.bai", sample=SAMPLES),
-        consensus_fastqs = expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
-
-        consensus_fasta = "BBMap_consensus.fasta"
+#        consensus_fastqs = expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
+#
+#        consensus_fasta = "BBMap_consensus.fasta"
 
 rule align_to_reference:
     # Aligns the fastq files to the CO1 reference using BBMap
@@ -53,22 +53,22 @@ rule index_alignments:
     shell: "cd bbmap & samtools index {input}"
 
 
-rule generate_consensus:
-    # Follows a standard way to convert alignments into consensus files
-    input:
-        bam = "bbmap/{sample}_sorted.bam",
-        bai = "bbmap/{sample}_sorted.bam.bai"
-    output:
-        "consensus_fastq/{sample}_consensus.fq"
-    conda: "pipeline_files/barcoding.yml"
-    shell: "samtools mpileup -uf pipeline_files/co1.fasta {input.bam} | bcftools call -c | vcfutils.pl vcf2fq > {output}"
-
-
-rule generate_multifasta:
-    # Generates a multifasta sorted by quality of the alignments
-    input:
-        expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
-    output:
-        "BBMap_consensus.fasta"
-    conda: "pipeline_files/barcoding.yml"
-    shell: "python pipeline_files/fastq_to_fasta.py -d consensus_fastq  -o {output}"
+#rule generate_consensus:
+#    # Follows a standard way to convert alignments into consensus files
+#    input:
+#        bam = "bbmap/{sample}_sorted.bam",
+#        bai = "bbmap/{sample}_sorted.bam.bai"
+#    output:
+#        "consensus_fastq/{sample}_consensus.fq"
+#    conda: "pipeline_files/barcoding.yml"
+#    shell: "samtools mpileup -uf pipeline_files/co1.fasta {input.bam} | bcftools call -c | vcfutils.pl vcf2fq > {output}"
+#
+#
+#rule generate_multifasta:
+#    # Generates a multifasta sorted by quality of the alignments
+#    input:
+#        expand("consensus_fastq/{sample}_consensus.fq", sample=SAMPLES),
+#    output:
+#        "BBMap_consensus.fasta"
+#    conda: "pipeline_files/barcoding.yml"
+#    shell: "python pipeline_files/fastq_to_fasta.py -d consensus_fastq  -o {output}"

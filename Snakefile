@@ -143,7 +143,7 @@ rule gather_contigs:
 
 
 rule align_to_reference:
-    # Orients contigs to a COI reference for 3' to 5' for BOLD submission
+    # Orients contigs to a COI reference for 5' to 3' for BOLD submission
     input: "final_good_contigs.fasta"
     output: "final_good_contigs_aligned.fasta"
     conda: "pipeline_files/barcoding.yml"
@@ -151,15 +151,15 @@ rule align_to_reference:
 
 
 rule align_medium_to_reference:
-    # Orients contigs to a COI reference for 3' to 5' for BOLD submission
-    input: "final_medium_contigs.fasta"
+    # Orients contigs to a COI reference for 5' to 3' for BOLD submission
+    input: "final_medium_contigs.fasta",
     output: "final_medium_contigs_aligned.fasta"
     conda: "pipeline_files/barcoding.yml"
-    shell: "cp pipeline_files/co1.fasta temp.fasta && cat final_medium_contigs.fasta >> temp.fasta && mafft --adjustdirection temp.fasta > final_medium_contigs_aligned.fasta && rm temp.fasta"
+    shell: "cp pipeline_files/co1.fasta temp1.fasta && cat final_medium_contigs.fasta >> temp1.fasta && mafft --adjustdirection temp1.fasta > final_medium_contigs_aligned.fasta && rm temp1.fasta"
 
 
 #rule align_poor_to_reference:
-#    # Orients contigs to a COI reference for 3' to 5' for BOLD submission
+#    # Orients contigs to a COI reference for 5' to 3' for BOLD submission
 #    input: "problem_fastas.txt"
 #    output: directory("problem_fastas_aligned")
 #    conda: "pipeline_files/barcoding.yml"

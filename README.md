@@ -37,7 +37,7 @@ source ~/miniconda3/bin/activate
 ```
 snakemake --use-conda -k
 ```
-* Alternative pipeline to generate consensus sequences from reads mapped to a COI reference gene
+* Alternative pipeline to map reads to COI reference gene
 ```
 snakemake -s barcoding_snakefile --use-conda -k
 ```
@@ -46,12 +46,14 @@ snakemake -s barcoding_snakefile --use-conda -k
 snakemake -s bold_retriever_snakefile --use-conda -k
 ```
 
-
 ## Methodology
 Pipeline was designed to handle COI genes amplified in overlapping fragements from thousands of Diptera specimens. 
-Can be used to handle other species so long as the co1.fasta reference is changed to a more appropriate species.
 
-Reads are trimmed and assembled with SPAdes with provides coverage information for each contig. 
+Reads are trimmed of adaptors and poor quality bases. Paired end reads are merged into single long fragements. 
+Each fragement is examined for primers, specifically Fragment A forward primer, and Fragement B reverse primer. 
+If Fragement A forward primer is detected, read is trimmed of the degenerate reverse primer. If Fragement B reverse
+primer is detected, read is trimmed of degenerate forward primer. Reads are subsequently assembled with SPAdes 
+which provides length and coverage information for all contigs. 
 Each assembly is examined for a single high coverage contig above 600 basepairs, strongly indicating a successful COI
 amplification without contamination. If the single high coverage contig is to short but still above 400 basepairs, 
 it is put into a medium quality pool rather than good quality. 
@@ -59,16 +61,9 @@ it is put into a medium quality pool rather than good quality.
 Assemblies that failed, or contain a variety of high coverage contigs, or no contigs above 400 basepairs with 
 high coverage are pooled into a folder called problem_fastas
 
-As the assembly process is imperfect, the alternative method is to align reads to a co1 reference and generate a 
-consensus sequence. This process tends to introduce degenerate bases and unknown bases into the consensus, especially 
-if contamination is present in the reads. Invoking barcoding_snakefile creates a multifasta containing all consensus 
-sequences, sorted from least degeneracy to most. 
-
-To examine the pileups of reads against the reference, [Tablet](https://ics.hutton.ac.uk/tablet/) can be used along with a sorted and indexed bam file
-```bash
-samtools sort sample.sam > sample_sorted.bam
-samtools index sample_sorted.bam
-```
+In order to more fully understand the problems facing some of the assemblies, reads can be aligned to a CO1 reference, 
+and the corresponding pileups examined using barcoding_snakefile. To examine the pileups of reads against the reference, 
+[Tablet](https://ics.hutton.ac.uk/tablet/) can be used sorted bame file, and sorted.bam.bai index file. 
 
 ## Built With
 
