@@ -30,7 +30,8 @@ rule align_to_reference:
     output:
         "bbmap/{sample}.sam"
     conda: "pipeline_files/barcoding.yml"
-    shell: "bbmap.sh in={input.r1} in2={input.r2} outm={output} ref={reference}"
+    threads: 4
+    shell: "bbmap.sh t={threads} in={input.r1} in2={input.r2} outm={output} ref={reference}"
 
 
 rule sort_alignments:
