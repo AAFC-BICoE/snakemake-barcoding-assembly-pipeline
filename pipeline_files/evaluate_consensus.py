@@ -27,8 +27,9 @@ def evaluate(input_directory):
     curated_fastas = []
     for consensus_dir in consensus_directories:
         files = sorted(glob.glob(os.path.join(consensus_dir, "*")))
+        sample = os.path.basename(consensus_dir)
         if len(files) == 5:
-            sample = os.path.basename(consensus_dir)
+
             fasta = files[0]
             merger = files[1]
             contamination = files[4]
@@ -61,6 +62,10 @@ def evaluate(input_directory):
                 curated_fastas.append(sequence)
 
             s = "{},{},{},{},{}\n".format(sample, correct_length, enough_reads, possible_contamination, sequence.seq)
+            summary_lines.append(s)
+
+        else:
+            s = "{},{},{},{},{}\n".format(sample, "NA", "NA", "NA", "")
             summary_lines.append(s)
 
     with open("Summary_Output.csv", "w") as f:

@@ -88,7 +88,7 @@ rule evaluate_vsearch:
         contam="consensus/{sample}/{sample}_contamination.fasta"
     log: "logs/consensus.{sample}.log"
     conda: "pipeline_files/vsearch_env.yml"
-    shell: "python pipeline_files/evaluate_vsearch.py -i {input} -o consensus/{wildcards.sample} &>{log}"
+    shell: "python pipeline_files/evaluate_vsearch.py -i {input} -o consensus/{wildcards.sample} &>{log}; touch {output.consensus} {output.contam}"
 
 
 rule evaluate_consensus:
