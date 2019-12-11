@@ -61,7 +61,7 @@ def find_primers(fastq_file, primer_file, output_file, dg):
     with open(fastq_file) as f:
         primers = get_primers(primer_file)
         primer_a_f = str(primers[0].seq) # Forward primer Fragment A
-        primer_b_r = str(primers[3].seq) # Reverse Primer Fragement B
+        primer_b_r = str(primers[3].seq) # Reverse Primer Fragment B
 
         # Degenerate primers must be converted into their respective oligos for detection in the reads
         dg_result = subprocess.run(['./{}'.format(dg), primer_b_r], stdout=subprocess.PIPE).stdout.decode('utf-8')
@@ -77,20 +77,23 @@ def find_primers(fastq_file, primer_file, output_file, dg):
         for seq in SeqIO.parse(f, "fastq"):
             total_reads += 1
             """
-            Look for fragement A primer in read. If found, trim the read to the minimum_fragement length, 
+            Look for fragment A primer in read. If found, trim the read to the minimum_fragement length, 
             which excludes the degenerate reverse primer.
             """
             index = seq.seq.find(primer_a_f)
-            if index > 0:
-                min_size = 454
+            if index > 0: # Fragment A Forward Primer Found
+                min_size = 454 # Forward Primer + Fragment A without Reverse Primer
                 if len(seq.seq) >= index + min_size:  # Fragment is minimum size without including degenerate primer
-                    cut_read = seq[index:index+min_size+1]
-                    curated_fragment_a_reads.append(cut_read)
+                    cut_read = seq[index+len(primer_a_f):index+min_size+1] # Cut off Forward and Reverse Primer's
+                    if len(cut_read.seq) == 430:
+                        curated_fragment_a_reads.append(cut_read)
+                    else:
+                        too_short_a += 1
                 else:
                     too_short_a += 1
             else:
                 """
-                Since fragement a forward primer wasn't found, likely dealing with fragement B read
+                Since fragment a forward primer wasn't found, likely dealing with fragment B read
                 Look for the reverse primer, since its degenerate look at all possible oligos. 
                 Then trim the read to just the reverse primer at tail, and trim the first 20 bases to 
                 capture the degenerate forward primer
@@ -98,16 +101,17 @@ def find_primers(fastq_file, primer_file, output_file, dg):
 
                 for primer in reverse_primers:
                     temp_index = seq.seq.find(primer)
-                    if temp_index > index:
+                    if temp_index > 400:
                         index = temp_index
-                        if len(seq.seq) > 450:
-                            cut_read = seq[20:index+23]
+                        if len(seq.seq) > 450: # Contains both B fragment primers
+                            cut_read = seq[index-415:index] # Remove the forward and reverse primers
                             curated_fragment_b_reads.append(cut_read)
                         else:
                             too_short_b += 1
                         break
                 else:
                     no_primers += 1
+
         log_string = "File {}, Total Reads: {}, Missing Primers: {}, Reads Too Short: {}, Fragment A Reads: {}, " \
                      "Fragement B Reads: {}".format(os.path.basename(fastq_file), total_reads, no_primers,
                                                     (too_short_a+too_short_b),
