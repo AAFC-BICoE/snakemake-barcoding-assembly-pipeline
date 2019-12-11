@@ -76,7 +76,7 @@ rule vsearch:
         "vsearch/{sample}.fas"
     log: "logs/vsearch.{sample}.log"
     conda: "pipeline_files/vsearch_env.yml"
-    shell: "vsearch --derep_fulllength {input} --sizein --fasta_width 0 --sizeout --output {output} &>{log}"
+    shell: "vsearch --derep_fulllength {input} --sizein --fasta_width 0 --sizeout --output {output} &>{log} || true; touch {output}"
 
 
 rule evaluate_vsearch:
